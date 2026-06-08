@@ -1,0 +1,893 @@
+---
+title: "Analisis Data Pembangunan Wilayah Indonesia"
+author: "Proyek Akhir Probabilitas dan Statistika"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: true
+    toc_depth: 3
+    number_sections: true
+    fig_caption: true
+    latex_engine: xelatex
+    includes:
+      in_header: null
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cosmo
+    highlight: tango
+
+geometry: margin=2.5cm
+
+header-includes:
+  - \usepackage{booktabs}
+  - \usepackage{longtable}
+  - \usepackage{array}
+  - \usepackage{multirow}
+  - \usepackage{geometry}
+  - \usepackage{fancyhdr}
+  - \usepackage{titling}
+  - \usepackage{xcolor}
+  - \usepackage{mdframed}
+  - \usepackage{tikz}
+  - \usetikzlibrary{shadows}
+  - \usepackage{tabularx}
+  - \usepackage{pdflscape}
+  - \AtBeginDocument{\thispagestyle{empty}}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo      = TRUE,
+  warning   = FALSE,
+  message   = FALSE,
+  fig.width = 7,
+  fig.height = 4.5,
+  fig.align = "center"
+)
+library(knitr)
+library(kableExtra)
+```
+
+\begin{titlepage}
+\begin{center}
+
+\vspace*{1.5cm}
+
+{\LARGE \textbf{PROYEK AKHIR}}\\[6pt]
+{\Large \textbf{PROBABILITAS DAN STATISTIKA}}
+
+\vspace{1cm}
+\noindent\rule{\textwidth}{1.5pt}
+\vspace{0.3cm}
+
+{\large \textbf{Analisis Data Pembangunan Wilayah Indonesia}}
+
+\vspace{0.3cm}
+\noindent\rule{\textwidth}{1.5pt}
+
+\vspace{1.2cm}
+
+\begin{tikzpicture}
+  \node[draw=blue!60, fill=blue!5, rounded corners=8pt,
+        inner xsep=20pt, inner ysep=14pt, drop shadow] {
+    \begin{tabular}{ll}
+      \textbf{Mata Kuliah}     & : Probabilitas dan Statistika \\[6pt]
+      \textbf{Program Studi}   & : Teknologi Rekayasa Perangkat Lunak \\[6pt]
+      \textbf{Tahun Akademik}  & : 2025/2026 \\
+    \end{tabular}
+  };
+\end{tikzpicture}
+
+\vspace{1.2cm}
+
+{\large \textbf{Disusun Oleh:}}
+
+\vspace{0.5cm}
+
+\begin{tikzpicture}
+  \node[draw=gray!50, fill=gray!5, rounded corners=8pt,
+        inner xsep=20pt, inner ysep=14pt] {
+    \begin{tabular}{clr}
+      \hline
+      \textbf{No} & \textbf{Nama} & \textbf{NIM} \\
+      \hline
+      1 & Azzura Mori                & J0403251074 \\
+      2 & Azhar Fawwaz Haris         & J0403251043 \\
+      3 & Ayyash Syauqi Syahadah     & J0403251100 \\
+      4 & Fuad Nizard Attaqi         & J0403251086 \\
+      5 & Haidar Hafizh Izzuddin     & J0403251031 \\
+      6 & Muhammad Adiyoga Danendra  & J0403251063 \\
+      \hline
+    \end{tabular}
+  };
+\end{tikzpicture}
+
+\vfill
+
+{\normalsize Institut Pertanian Bogor \\ 2025/2026}
+
+\end{center}
+\end{titlepage}
+
+\newpage
+
+# Pendahuluan
+
+Pada proyek akhir ini, kita berperan sebagai analis data yang mengevaluasi kondisi pembangunan wilayah di Indonesia. Dataset yang digunakan berisi berbagai indikator pembangunan seperti tingkat kemiskinan, pengangguran, IPM, PDRB per kapita, akses internet, kualitas infrastruktur, dan indikator sosial lainnya.
+
+Tujuan utama analisis ini adalah:
+
+1. Memahami struktur dan karakteristik dataset
+2. Melakukan eksplorasi data menggunakan R
+3. Mengidentifikasi missing value dan outlier
+4. Melakukan statistika deskriptif
+5. Membuat visualisasi data yang informatif
+6. Menggunakan konsep probabilitas dan distribusi data
+7. Melakukan analisis hubungan antar variabel
+8. Menarik kesimpulan berbasis data
+
+## Load Library
+
+```{r load-library, echo=FALSE}
+library(ggplot2)
+library(dplyr)
+library(corrplot)
+library(knitr)
+library(kableExtra)
+```
+
+---
+
+# Memahami Dataset
+
+## Membaca Dataset
+
+```{r baca-data, echo=FALSE}
+data <- read.csv("../Dataset/pembangunan_wilayah_missing_outlier.csv")
+```
+
+## Struktur Data
+
+```{r struktur, echo=FALSE}
+str(data)
+```
+
+Dari output `str()` di atas, kita bisa lihat bahwa dataset ini terdiri dari **2500 observasi** dan **13 variabel**. Variabel-variabel tersebut terdiri dari campuran tipe data character (teks) dan numeric (angka).
+
+## Dimensi Dataset
+
+```{r dimensi, echo=FALSE}
+dim(data)
+```
+
+Dataset memiliki **`r nrow(data)` baris** (observasi) dan **`r ncol(data)` kolom** (variabel).
+
+## Ringkasan Data
+
+```{r ringkasan, echo=FALSE}
+summary(data)
+```
+
+## Preview Data
+
+```{r head, echo=FALSE}
+head(data, 10)
+```
+
+## Penjelasan Variabel
+
+Berikut penjelasan arti masing-masing variabel dalam dataset:
+
+| No | Variabel | Tipe Data | Penjelasan |
+|:--:|:---------|:----------|:-----------|
+| 1 | `wilayah` | Character | Identitas unik kabupaten/kota |
+| 2 | `provinsi` | Character | Provinsi tempat wilayah berada (10 provinsi) |
+| 3 | `tahun` | Integer | Tahun pengamatan (2020--2024) |
+| 4 | `pdrb_perkapita` | Numeric | PDRB per kapita (Rp), mengukur produktivitas ekonomi daerah |
+| 5 | `kemiskinan` | Numeric | Tingkat kemiskinan (%), persentase penduduk miskin |
+| 6 | `pengangguran` | Numeric | Tingkat pengangguran (%), persentase penduduk menganggur |
+| 7 | `ipm` | Numeric | Indeks Pembangunan Manusia (0--100), gabungan indikator kesehatan, pendidikan, dan standar hidup |
+| 8 | `harapan_hidup` | Numeric | Angka harapan hidup (tahun), mencerminkan kualitas kesehatan |
+| 9 | `rata_lama_sekolah` | Numeric | Rata-rata lama sekolah (tahun), menunjukkan tingkat pendidikan |
+| 10 | `akses_internet` | Numeric | Persentase akses internet (%), indikator konektivitas digital |
+| 11 | `jalan_baik` | Numeric | Persentase jalan kondisi baik (%), kualitas infrastruktur |
+| 12 | `air_bersih` | Numeric | Persentase akses air bersih (%), indikator kesejahteraan |
+| 13 | `catatan_data` | Character | Label: Normal, Missing Value, atau Outlier |
+
+---
+
+# Statistika Deskriptif
+
+## Menghitung Statistik Deskriptif
+
+Kita menghitung mean, median, standar deviasi, varians, minimum, dan maximum untuk setiap variabel numerik.
+
+```{r deskriptif, echo=FALSE}
+numeric_data <- data %>% select(where(is.numeric), -tahun)
+
+deskriptif <- data.frame(
+  Variabel = names(numeric_data),
+  Mean     = round(sapply(numeric_data, mean,   na.rm = TRUE), 2),
+  Median   = round(sapply(numeric_data, median, na.rm = TRUE), 2),
+  SD       = round(sapply(numeric_data, sd,     na.rm = TRUE), 2),
+  Min      = round(sapply(numeric_data, min,    na.rm = TRUE), 2),
+  Max      = round(sapply(numeric_data, max,    na.rm = TRUE), 2)
+)
+
+kable(
+  deskriptif,
+  booktabs = TRUE,
+  align    = "lrrrrr",
+  linesep  = "",
+  caption  = "Statistika Deskriptif Variabel Numerik"
+) %>%
+  kable_styling(
+    font_size     = 8,
+    latex_options = c("striped", "hold_position", "scale_down")
+  )
+```
+
+## Kuartil
+
+```{r kuartil, echo=FALSE}
+kuartil_raw <- sapply(
+  data %>% select(where(is.numeric), -tahun),
+  quantile, na.rm = TRUE
+)
+
+# Transpose: variabel jadi baris, kuartil jadi kolom
+kuartil_df <- as.data.frame(t(kuartil_raw))
+colnames(kuartil_df) <- c("Min", "Q1 (25%)", "Median (50%)", "Q3 (75%)", "Max")
+
+# Nama variabel dengan satuan
+kuartil_df$Variabel <- c(
+  "PDRB per Kapita (Rp juta)",
+  "Kemiskinan (%)",
+  "Pengangguran (%)",
+  "IPM",
+  "Harapan Hidup (Tahun)",
+  "Rata-rata Lama Sekolah (Tahun)",
+  "Akses Internet (%)",
+  "Jalan Baik (%)",
+  "Air Bersih (%)"
+)
+
+# Konversi PDRB ke juta
+kuartil_df["pdrb_perkapita", c("Min","Q1 (25%)","Median (50%)","Q3 (75%)","Max")] <-
+  round(kuartil_df["pdrb_perkapita", c("Min","Q1 (25%)","Median (50%)","Q3 (75%)","Max")] / 1e6, 2)
+
+# Susun kolom: Variabel di depan
+kuartil_df <- kuartil_df[, c("Variabel", "Min", "Q1 (25%)",
+                              "Median (50%)", "Q3 (75%)", "Max")]
+
+knitr::kable(
+  kuartil_df,
+  digits    = 2,
+  caption   = "Kuartil Variabel Numerik",
+  booktabs  = TRUE,
+  row.names = FALSE,
+  align     = "lrrrrr"
+) %>%
+  kable_styling(
+    latex_options = c("striped", "hold_position", "scale_down"),
+    font_size     = 9
+  )
+```
+
+## Modus (untuk variabel tahun)
+
+```{r modus, echo=FALSE}
+# Fungsi untuk menghitung modus
+get_mode <- function(x) {
+  tbl <- table(x)
+  names(tbl)[which.max(tbl)]
+}
+
+cat("Modus variabel tahun:", get_mode(data$tahun), "\n")
+cat("Modus variabel provinsi:", get_mode(data$provinsi), "\n")
+```
+
+## Interpretasi Statistika Deskriptif
+
+**Variabel dengan nilai rata-rata tertinggi:**
+Variabel `pdrb_perkapita` memiliki rata-rata tertinggi secara absolut (dalam ratusan juta rupiah) karena satuannya berbeda dengan variabel lain yang dalam persen. Kalau kita bandingkan variabel-variabel dalam skala persen saja, `ipm` dan `air_bersih` yang punya rata-rata paling tinggi -- ini menunjukkan bahwa rata-rata pembangunan manusia dan akses air bersih di Indonesia cukup baik.
+
+**Variabel dengan penyebaran terbesar:**
+Secara absolut, `pdrb_perkapita` memiliki standar deviasi dan varians yang paling besar. Ini menunjukkan adanya **ketimpangan ekonomi** yang signifikan antar wilayah di Indonesia. Ada wilayah yang sangat produktif (PDRB tinggi) dan ada yang masih tertinggal.
+
+**Indikasi data tidak normal:**
+
+- `pdrb_perkapita`: Selisih antara mean dan median menunjukkan distribusi yang *skewed* (miring), ditambah dengan adanya outlier ekstrem (nilai max sangat jauh dari Q3).
+- `kemiskinan` dan `pengangguran`: Keduanya juga memiliki outlier yang menarik distribusi ke kanan.
+
+---
+
+# Analisis Missing Value
+
+## Identifikasi Missing Value
+
+```{r missing-value, echo=FALSE}
+missing_count <- colSums(is.na(data))
+missing_df <- data.frame(
+  Variabel = names(missing_count),
+  Jumlah_NA = as.integer(missing_count),
+  Persentase = round(missing_count / nrow(data) * 100, 2)
+)
+
+knitr::kable(missing_df,
+             caption = "Jumlah Missing Value per Variabel",
+             booktabs = TRUE,
+             row.names = FALSE) %>%
+  kable_styling(latex_options = c("striped", "hold_position"),
+                font_size = 10)
+```
+
+```{r total-missing, echo=FALSE}
+cat("Total baris dengan label 'Missing Value':", sum(data$catatan_data == "Missing Value"), "\n")
+cat("Total sel (cell) yang NA:", sum(is.na(data)), "\n")
+```
+
+## Dampak Missing Value
+
+Missing value memiliki beberapa dampak negatif terhadap analisis statistik:
+
+1. **Bias pada hasil statistik**: Jika data yang hilang tidak random (MNAR), maka mean, median, dan statistik lainnya bisa menyimpang dari nilai sebenarnya.
+2. **Pengurangan jumlah sampel**: Menghapus baris dengan NA (`na.omit()`) akan mengurangi jumlah data, yang mengurangi kekuatan statistik analisis.
+3. **Mengganggu analisis korelasi**: Fungsi `cor()` menghasilkan NA jika ada missing value, sehingga perlu parameter `use = "complete.obs"`.
+4. **Visualisasi kurang akurat**: Histogram dan boxplot yang tidak menangani NA bisa menampilkan distribusi yang tidak representatif.
+
+## Penanganan Missing Value: Median Imputation
+
+Kita memilih **median imputation** dengan alasan:
+
+- **Robust terhadap outlier**: Dataset ini mengandung outlier (pdrb_perkapita bisa melebihi 1 miliar), sehingga mean imputation akan terpengaruh oleh nilai ekstrem tersebut. Median tidak terpengaruh.
+- **Mempertahankan distribusi asli**: Median imputation lebih menjaga bentuk distribusi data dibandingkan mean imputation.
+- **Cocok untuk data non-normal**: Beberapa variabel kita (terutama `pdrb_perkapita`) tidak berdistribusi normal.
+- **Sederhana dan efektif**: Untuk proporsi missing yang relatif kecil (~2% per variabel), median imputation sudah cukup baik.
+
+```{r imputation, echo=FALSE}
+data_clean <- data
+
+for(col in names(data_clean)){
+  if(is.numeric(data_clean[[col]])){
+    data_clean[[col]][is.na(data_clean[[col]])] <-
+      median(data_clean[[col]], na.rm = TRUE)
+  }
+}
+```
+
+## Verifikasi Hasil Imputasi
+
+```{r verifikasi-imputation, echo=FALSE}
+cat("Sisa missing value setelah imputasi:\n")
+colSums(is.na(data_clean))
+```
+
+Semua missing value berhasil ditangani. Dataset sekarang bersih dari NA.
+
+---
+
+# Analisis Outlier
+
+## Metode Deteksi: IQR Method
+
+Outlier dideteksi menggunakan metode **IQR (Interquartile Range)**:
+
+- Q1 = Kuartil 1 (persentil ke-25)
+- Q3 = Kuartil 3 (persentil ke-75)
+- IQR = Q3 - Q1
+- **Batas bawah** = Q1 - 1.5 × IQR
+- **Batas atas** = Q3 + 1.5 × IQR
+
+Data yang berada di luar batas bawah atau batas atas dianggap outlier.
+
+```{r deteksi-outlier, echo=FALSE}
+detect_outlier <- function(x){
+  Q1 <- quantile(x, 0.25, na.rm = TRUE)
+  Q3 <- quantile(x, 0.75, na.rm = TRUE)
+  IQR_val <- IQR(x, na.rm = TRUE)
+
+  lower <- Q1 - 1.5 * IQR_val
+  upper <- Q3 + 1.5 * IQR_val
+
+  sum(x < lower | x > upper, na.rm = TRUE)
+}
+
+outlier_count <- sapply(data_clean[, sapply(data_clean, is.numeric)], detect_outlier)
+
+outlier_df <- data.frame(
+  Variabel = names(outlier_count),
+  Jumlah_Outlier = as.integer(outlier_count)
+)
+
+knitr::kable(outlier_df,
+             caption = "Jumlah Outlier per Variabel (Metode IQR)",
+             booktabs = TRUE,
+             row.names = FALSE) %>%
+  kable_styling(latex_options = c("striped", "hold_position"),
+                font_size = 10)
+```
+
+## Baris yang Ditandai Outlier di Dataset
+
+```{r outlier-label, echo=FALSE}
+outlier_rows <- data_clean[data_clean$catatan_data == "Outlier", ]
+cat("Jumlah baris berlabel 'Outlier':", nrow(outlier_rows), "\n\n")
+knitr::kable(outlier_rows[, c("wilayah", "provinsi", "tahun", "pdrb_perkapita",
+                               "kemiskinan", "pengangguran", "akses_internet")],
+             caption = "Baris Data yang Berlabel Outlier",
+             booktabs = TRUE,
+             row.names = FALSE,
+             digits = 2) %>%
+  kable_styling(latex_options = c("striped", "hold_position", "scale_down"),
+                font_size = 8)
+```
+
+## Interpretasi Outlier
+
+Berdasarkan analisis IQR dan label `catatan_data`, outlier ditemukan pada variabel:
+
+- **`pdrb_perkapita`**: Beberapa wilayah memiliki PDRB per kapita yang sangat tinggi (>1 miliar rupiah), jauh di atas rentang normal (~15-250 juta). Ini bisa menunjukkan kesalahan data entry atau wilayah dengan aktivitas ekonomi khusus (pertambangan, industri besar).
+- **`kemiskinan`**: Outlier di atas 40% sangat tidak lazim dan kemungkinan anomali data.
+- **`pengangguran`**: Nilai pengangguran di atas 30% sangat ekstrem dan tidak realistis.
+- **`akses_internet`**: Beberapa wilayah memiliki akses internet mendekati 0%, yang sangat tidak wajar.
+
+**Dampak outlier terhadap analisis**:
+
+1. Mean menjadi terdistorsi (tertarik ke arah outlier)
+2. Standar deviasi dan varians membesar
+3. Korelasi antar variabel bisa menyimpang
+4. Uji normalitas hampir pasti menolak H0 jika outlier masih ada
+
+---
+
+# Visualisasi Data
+
+## Visualisasi 1: Histogram Distribusi IPM
+
+```{r viz-histogram-ipm, echo=FALSE, fig.cap="Distribusi Indeks Pembangunan Manusia (IPM)"}
+ggplot(data_clean, aes(x = ipm)) +
+  geom_histogram(bins = 25, fill = "#3498db", color = "white", alpha = 0.8) +
+  labs(
+    title = "Distribusi Indeks Pembangunan Manusia (IPM)",
+    x = "Nilai IPM",
+    y = "Frekuensi (Jumlah Wilayah)"
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold", size = 14))
+```
+
+**Interpretasi**: Distribusi IPM mendekati bentuk lonceng (bell-shaped), yang berarti mendekati distribusi normal. Sebagian besar wilayah memiliki IPM di rentang 60--80, dengan puncak frekuensi di sekitar 65--75. Ini menunjukkan bahwa mayoritas wilayah berada pada kategori pembangunan manusia "sedang" hingga "tinggi".
+
+## Visualisasi 2: Boxplot Tingkat Kemiskinan
+
+```{r viz-boxplot-kemiskinan, echo=FALSE, fig.cap="Boxplot Tingkat Kemiskinan"}
+ggplot(data_clean, aes(y = kemiskinan)) +
+  geom_boxplot(fill = "#e74c3c", alpha = 0.7, outlier.color = "darkred", outlier.size = 2) +
+  labs(
+    title = "Boxplot Tingkat Kemiskinan",
+    y = "Tingkat Kemiskinan (%)"
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold", size = 14))
+```
+
+**Interpretasi**: Median kemiskinan berada di sekitar 13.5%. Kotak (IQR) menunjukkan bahwa 50% data berada di rentang ~7.5%--20%. Terdapat beberapa titik outlier di atas 25% yang menandakan adanya wilayah-wilayah dengan kemiskinan sangat tinggi. Distribusi sedikit miring ke kanan (*positively skewed*).
+
+## Visualisasi 3: Scatter Plot IPM vs Kemiskinan
+
+```{r viz-scatter, echo=FALSE, fig.cap="Hubungan IPM dan Kemiskinan"}
+ggplot(data_clean, aes(x = ipm, y = kemiskinan)) +
+  geom_point(alpha = 0.3, color = "#2c3e50", size = 1.5) +
+  geom_smooth(method = "lm", color = "#e74c3c", se = TRUE, linetype = "dashed") +
+  labs(
+    title = "Hubungan IPM dan Tingkat Kemiskinan",
+    x = "Indeks Pembangunan Manusia (IPM)",
+    y = "Tingkat Kemiskinan (%)"
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold", size = 14))
+```
+
+**Interpretasi**: Scatter plot menunjukkan hubungan antara IPM dan kemiskinan. Garis regresi (merah putus-putus) membantu melihat tren. Dalam data ini, hubungan antara kedua variabel tampak lemah. Secara teori, seharusnya ada korelasi negatif (IPM tinggi = kemiskinan rendah), namun karena data bersifat sintetis, polanya tidak terlalu jelas.
+
+## Visualisasi 4: Bar Chart Jumlah Data per Provinsi
+
+```{r viz-bar, echo=FALSE, fig.cap="Jumlah Data per Provinsi"}
+ggplot(data_clean, aes(x = reorder(provinsi, provinsi, function(x) -length(x)))) +
+  geom_bar(fill = "#27ae60", alpha = 0.8) +
+  labs(
+    title = "Jumlah Observasi per Provinsi",
+    x = "Provinsi",
+    y = "Jumlah Observasi"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
+    plot.title = element_text(face = "bold", size = 14)
+  )
+```
+
+**Interpretasi**: Setiap provinsi memiliki jumlah data yang relatif seimbang (~250 observasi per provinsi). Ini menunjukkan dataset dibuat secara *balanced*, sehingga perbandingan antar provinsi bisa dilakukan secara adil. Terdapat 10 provinsi: Jawa Barat, Jawa Tengah, Jawa Timur, DKI Jakarta, Banten, Sumatera Utara, Sumatera Barat, Kalimantan Timur, Sulawesi Selatan, dan Papua.
+
+## Visualisasi 5: Histogram Distribusi Pengangguran
+
+```{r viz-histogram-pengangguran, echo=FALSE, fig.cap="Distribusi Tingkat Pengangguran"}
+ggplot(data_clean, aes(x = pengangguran)) +
+  geom_histogram(bins = 25, fill = "#f39c12", color = "white", alpha = 0.8) +
+  labs(
+    title = "Distribusi Tingkat Pengangguran",
+    x = "Tingkat Pengangguran (%)",
+    y = "Frekuensi (Jumlah Wilayah)"
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold", size = 14))
+```
+
+**Interpretasi**: Distribusi pengangguran mendekati bentuk merata (*uniform*) pada rentang 1--15%. Terdapat beberapa outlier di atas 15% yang tampak sebagai bar kecil di ujung kanan. Mayoritas wilayah memiliki pengangguran di bawah 15%.
+
+## Visualisasi 6 (Bonus): Heatmap Korelasi
+
+```{r viz-heatmap, echo=FALSE, fig.cap="Heatmap Korelasi Antar Variabel Numerik", fig.width=7, fig.height=6}
+num_cols <- data_clean[, sapply(data_clean, is.numeric)]
+corr_mat <- cor(num_cols)
+
+corrplot(corr_mat,
+         method = "color",
+         type = "upper",
+         tl.cex = 0.8,
+         tl.col = "black",
+         addCoef.col = "black",
+         number.cex = 0.6,
+         col = colorRampPalette(c("#e74c3c", "white", "#3498db"))(200),
+         title = "Heatmap Korelasi Antar Variabel",
+         mar = c(0, 0, 2, 0))
+```
+
+**Interpretasi**: Heatmap menampilkan kekuatan dan arah korelasi antar variabel numerik. Warna biru menunjukkan korelasi positif, merah menunjukkan korelasi negatif. Nilai mendekati 0 berarti hubungan sangat lemah.
+
+---
+
+# Analisis Probabilitas dan Distribusi Data
+
+## Uji Normalitas (Shapiro-Wilk Test)
+
+Kita menguji apakah variabel IPM berdistribusi normal menggunakan Shapiro-Wilk Test.
+
+**Hipotesis:**
+
+- H0: Data berdistribusi normal
+- H1: Data TIDAK berdistribusi normal
+- $\alpha$ = 0.05
+
+```{r normalitas, echo=FALSE}
+set.seed(123)  # untuk reproducibility
+shapiro_result <- shapiro.test(sample(data_clean$ipm, 500))
+shapiro_result
+```
+
+```{r interpretasi-shapiro, echo=FALSE}
+if(shapiro_result$p.value < 0.05){
+  cat("Keputusan: TOLAK H0 (p-value =", round(shapiro_result$p.value, 4), "< 0.05)\n")
+  cat("Kesimpulan: Data IPM secara statistik TIDAK berdistribusi normal sempurna.\n")
+} else {
+  cat("Keputusan: GAGAL TOLAK H0 (p-value =", round(shapiro_result$p.value, 4), ">= 0.05)\n")
+  cat("Kesimpulan: Tidak cukup bukti untuk menolak bahwa data IPM berdistribusi normal.\n")
+}
+```
+
+*Catatan*: Shapiro-Wilk Test cenderung menolak H0 pada sampel besar karena sensitivitasnya tinggi. Meskipun uji formal mungkin menolak normalitas, secara visual (histogram) distribusi IPM cukup mendekati bentuk normal.
+
+## Probabilitas Kemiskinan di Atas Rata-rata
+
+```{r prob-kemiskinan, echo=FALSE}
+mean_kemiskinan <- mean(data_clean$kemiskinan)
+prob_kemiskinan <- mean(data_clean$kemiskinan > mean_kemiskinan)
+
+cat("Rata-rata kemiskinan:", round(mean_kemiskinan, 2), "%\n")
+cat("P(kemiskinan > rata-rata) =", round(prob_kemiskinan, 4), "\n")
+cat("Artinya:", round(prob_kemiskinan * 100, 1), "% wilayah memiliki kemiskinan di atas rata-rata.\n")
+```
+
+**Interpretasi**: Sekitar `r round(prob_kemiskinan * 100, 1)`% wilayah memiliki tingkat kemiskinan di atas rata-rata. Ini masuk akal karena distribusi kemiskinan mendekati simetris, sehingga sekitar setengah data berada di atas rata-rata.
+
+## Probabilitas IPM Tinggi (> 75)
+
+```{r prob-ipm, echo=FALSE}
+prob_ipm <- mean(data_clean$ipm > 75)
+
+cat("P(IPM > 75) =", round(prob_ipm, 4), "\n")
+cat("Artinya:", round(prob_ipm * 100, 1), "% wilayah memiliki IPM di atas 75 (kategori tinggi).\n")
+```
+
+**Interpretasi**: Hanya sekitar `r round(prob_ipm * 100, 1)`% wilayah yang memiliki IPM di atas 75 (kategori "tinggi" menurut BPS). Ini berarti mayoritas wilayah masih perlu meningkatkan kualitas pembangunan manusia.
+
+## Probabilitas Pengangguran > 10%
+
+```{r prob-pengangguran, echo=FALSE}
+prob_pengangguran <- mean(data_clean$pengangguran > 10)
+
+cat("P(pengangguran > 10%) =", round(prob_pengangguran, 4), "\n")
+cat("Artinya:", round(prob_pengangguran * 100, 1), "% wilayah memiliki pengangguran di atas 10%.\n")
+```
+
+**Interpretasi**: Sekitar `r round(prob_pengangguran * 100, 1)`% wilayah memiliki tingkat pengangguran di atas 10%. Ini cukup signifikan dan menunjukkan bahwa masalah ketenagakerjaan masih menjadi tantangan di banyak daerah.
+
+## Probabilitas Menggunakan Distribusi Normal
+
+Kita juga bisa menghitung probabilitas menggunakan pendekatan distribusi normal (pnorm).
+
+```{r prob-normal, echo=FALSE}
+# Menggunakan distribusi normal untuk IPM
+mean_ipm <- mean(data_clean$ipm)
+sd_ipm <- sd(data_clean$ipm)
+
+# P(IPM > 80) menggunakan distribusi normal
+prob_ipm_80 <- 1 - pnorm(80, mean = mean_ipm, sd = sd_ipm)
+cat("Berdasarkan distribusi normal:\n")
+cat("P(IPM > 80) =", round(prob_ipm_80, 4), "\n")
+
+# Nilai IPM pada persentil ke-90 (qnorm)
+ipm_p90 <- qnorm(0.90, mean = mean_ipm, sd = sd_ipm)
+cat("Nilai IPM pada persentil ke-90:", round(ipm_p90, 2), "\n")
+```
+
+---
+
+# Analisis Korelasi
+
+## Matriks Korelasi
+
+```{r korelasi-matrix, echo=FALSE}
+corr_matrix <- cor(data_clean[, sapply(data_clean, is.numeric)])
+
+# Hapus tahun dari matriks
+corr_matrix <- corr_matrix[
+  !rownames(corr_matrix) %in% "tahun",
+  !colnames(corr_matrix) %in% "tahun"
+]
+
+# Nama baris dan kolom yang rapi dengan satuan
+nama_rapi <- c(
+  "PDRB per Kapita (Rp juta)",
+  "Kemiskinan (%)",
+  "Pengangguran (%)",
+  "IPM",
+  "Harapan Hidup (Thn)",
+  "Lama Sekolah (Thn)",
+  "Akses Internet (%)",
+  "Jalan Baik (%)",
+  "Air Bersih (%)"
+)
+rownames(corr_matrix) <- nama_rapi
+colnames(corr_matrix) <- c("PDRB", "Miskin", "Nganggur", "IPM",
+                            "Harapan", "Sekolah", "Internet", "Jalan", "Air")
+
+knitr::kable(
+  round(corr_matrix, 3),
+  caption  = "Matriks Korelasi Antar Variabel Numerik",
+  booktabs = TRUE,
+  align    = paste(rep("r", 9), collapse = "")
+) %>%
+  kable_styling(
+    latex_options = c("striped", "scale_down"),
+    font_size     = 8,
+    full_width    = FALSE
+  ) %>%
+  landscape()
+```
+
+## Uji Korelasi: IPM dan Kemiskinan
+
+```{r kor-ipm-kemiskinan, echo=FALSE}
+cor_test_1 <- cor.test(data_clean$ipm, data_clean$kemiskinan)
+cor_test_1
+```
+
+**Interpretasi**: Korelasi antara IPM dan kemiskinan sebesar **r = `r round(cor_test_1$estimate, 4)`**. Secara teori, hubungan ini seharusnya negatif kuat (IPM tinggi berarti kemiskinan rendah). Dalam dataset sintetis ini, korelasi mungkin lemah. P-value `r ifelse(cor_test_1$p.value < 0.05, "< 0.05 menunjukkan hubungan yang signifikan secara statistik", ">= 0.05 menunjukkan hubungan yang tidak signifikan secara statistik")`.
+
+## Uji Korelasi: IPM dan Akses Internet
+
+```{r kor-ipm-internet, echo=FALSE}
+cor_test_2 <- cor.test(data_clean$ipm, data_clean$akses_internet)
+cor_test_2
+```
+
+**Interpretasi**: Korelasi antara IPM dan akses internet sebesar **r = `r round(cor_test_2$estimate, 4)`**. Secara teori, akses internet yang lebih baik seharusnya berkaitan dengan pembangunan manusia yang lebih tinggi.
+
+## Uji Korelasi: PDRB per Kapita dan Kemiskinan
+
+```{r kor-pdrb-kemiskinan, echo=FALSE}
+cor_test_3 <- cor.test(data_clean$pdrb_perkapita, data_clean$kemiskinan)
+cor_test_3
+```
+
+**Interpretasi**: Korelasi antara PDRB per kapita dan kemiskinan sebesar **r = `r round(cor_test_3$estimate, 4)`**. Secara teori, daerah dengan produktivitas ekonomi yang lebih tinggi seharusnya memiliki tingkat kemiskinan yang lebih rendah.
+
+## Panduan Interpretasi Korelasi
+
+| Nilai r | Kekuatan Hubungan |
+|:--------|:------------------|
+| 0.00 -- 0.19 | Sangat lemah |
+| 0.20 -- 0.39 | Lemah |
+| 0.40 -- 0.59 | Sedang |
+| 0.60 -- 0.79 | Kuat |
+| 0.80 -- 1.00 | Sangat kuat |
+
+Tanda positif (+) = hubungan searah, tanda negatif (-) = hubungan berlawanan arah.
+
+---
+
+# Kesimpulan dan Insight
+
+## Ringkasan Hasil Analisis
+
+1. **Dataset** terdiri dari `r nrow(data)` observasi dari 10 provinsi, mencakup periode 2020--2024, dengan `r ncol(data)` variabel tentang aspek ekonomi, sosial, dan infrastruktur.
+
+2. **IPM rata-rata** sekitar `r round(mean(data_clean$ipm), 1)`, menunjukkan pembangunan manusia Indonesia berada pada kategori "sedang".
+
+3. **Kemiskinan rata-rata** sekitar `r round(mean(data_clean$kemiskinan), 1)`%, dengan distribusi yang cukup merata.
+
+4. **Missing value** ditemukan pada beberapa variabel numerik dan telah ditangani dengan median imputation.
+
+5. **Outlier** terdeteksi pada `pdrb_perkapita` (>1 miliar), `kemiskinan` (>40%), `pengangguran` (>30%), dan `akses_internet` (mendekati 0%).
+
+6. **Distribusi IPM** mendekati normal, sementara `pdrb_perkapita` memiliki distribusi *right-skewed*.
+
+7. **Korelasi** antar variabel bervariasi; hubungan terkuat dan terlemah dapat dilihat dari matriks korelasi di atas.
+
+## Temuan Penting
+
+- **Ketimpangan Ekonomi**: PDRB per kapita memiliki rentang yang sangat lebar, menunjukkan ketimpangan ekonomi signifikan antar wilayah.
+- **Digital Divide**: Akses internet sangat bervariasi (hampir 0% hingga 98%), menunjukkan kesenjangan digital yang besar.
+- **Mayoritas IPM Sedang**: Sekitar `r round((1 - prob_ipm) * 100, 0)`% wilayah masih memiliki IPM di bawah 75, menandakan pembangunan manusia belum merata.
+- **Masalah Ketenagakerjaan**: Sekitar `r round(prob_pengangguran * 100, 0)`% wilayah memiliki pengangguran >10%.
+
+## Faktor yang Mempengaruhi Pembangunan Wilayah
+
+1. **Faktor Ekonomi** (`pdrb_perkapita`): Produktivitas ekonomi tinggi memungkinkan lebih banyak sumber daya untuk pembangunan.
+2. **Faktor Pendidikan** (`rata_lama_sekolah`, `ipm`): Pendidikan yang lebih baik meningkatkan kualitas SDM.
+3. **Faktor Kesehatan** (`harapan_hidup`): Kesehatan masyarakat mendukung produktivitas.
+4. **Faktor Infrastruktur** (`jalan_baik`, `akses_internet`, `air_bersih`): Infrastruktur yang memadai merupakan fondasi pembangunan.
+5. **Faktor Sosial** (`kemiskinan`, `pengangguran`): Kemiskinan dan pengangguran rendah menunjukkan pembangunan yang inklusif.
+
+## Rekomendasi Berbasis Data
+
+1. **Fokus pada wilayah IPM rendah (< 60)**: Alokasi lebih banyak sumber daya untuk meningkatkan pendidikan dan kesehatan.
+2. **Pemerataan akses internet**: Prioritaskan infrastruktur digital di wilayah dengan akses rendah.
+3. **Program pengentasan kemiskinan yang ditargetkan**: Perluas bantuan sosial dan pemberdayaan ekonomi.
+4. **Penanganan pengangguran**: Kembangkan program pelatihan kerja dan dukungan UMKM.
+5. **Peningkatan kualitas data**: Perbaiki sistem pengumpulan data untuk mengurangi missing value dan error.
+
+---
+
+# Referensi
+
+1. Walpole, R. E., Myers, R. H., Myers, S. L., & Ye, K. (2012). *Probability & Statistics for Engineers & Scientists* (9th ed.). Pearson Education.
+
+2. Wickham, H. (2016). *ggplot2: Elegant Graphics for Data Analysis*. Springer-Verlag New York.
+
+3. BPS (Badan Pusat Statistik). (2023). *Indeks Pembangunan Manusia 2023*. Jakarta: Badan Pusat Statistik.
+
+4. Field, A. (2013). *Discovering Statistics Using R*. SAGE Publications.
+
+5. James, G., Witten, D., Hastie, T., & Tibshirani, R. (2013). *An Introduction to Statistical Learning with Applications in R*. Springer.
+
+---
+
+\appendix
+
+# Lampiran: Script R
+
+Berikut adalah seluruh kode R yang digunakan dalam analisis ini.
+
+## Load Library dan Membaca Data
+
+```{r load-library, echo=TRUE, eval=FALSE}
+```
+
+```{r baca-data, echo=TRUE, eval=FALSE}
+```
+
+## Eksplorasi Dataset
+
+```{r struktur, echo=TRUE, eval=FALSE}
+```
+
+```{r dimensi, echo=TRUE, eval=FALSE}
+```
+
+```{r ringkasan, echo=TRUE, eval=FALSE}
+```
+
+```{r head, echo=TRUE, eval=FALSE}
+```
+
+## Statistika Deskriptif
+
+```{r deskriptif, echo=TRUE, eval=FALSE}
+```
+
+```{r kuartil, echo=TRUE, eval=FALSE}
+```
+
+```{r modus, echo=TRUE, eval=FALSE}
+```
+
+## Analisis Missing Value
+
+```{r missing-value, echo=TRUE, eval=FALSE}
+```
+
+```{r total-missing, echo=TRUE, eval=FALSE}
+```
+
+```{r imputation, echo=TRUE, eval=FALSE}
+```
+
+```{r verifikasi-imputation, echo=TRUE, eval=FALSE}
+```
+
+## Analisis Outlier
+
+```{r deteksi-outlier, echo=TRUE, eval=FALSE}
+```
+
+```{r outlier-label, echo=TRUE, eval=FALSE}
+```
+
+## Visualisasi Data
+
+```{r viz-histogram-ipm, echo=TRUE, eval=FALSE}
+```
+
+```{r viz-boxplot-kemiskinan, echo=TRUE, eval=FALSE}
+```
+
+```{r viz-scatter, echo=TRUE, eval=FALSE}
+```
+
+```{r viz-bar, echo=TRUE, eval=FALSE}
+```
+
+```{r viz-histogram-pengangguran, echo=TRUE, eval=FALSE}
+```
+
+```{r viz-heatmap, echo=TRUE, eval=FALSE}
+```
+
+## Probabilitas dan Distribusi
+
+```{r normalitas, echo=TRUE, eval=FALSE}
+```
+
+```{r interpretasi-shapiro, echo=TRUE, eval=FALSE}
+```
+
+```{r prob-kemiskinan, echo=TRUE, eval=FALSE}
+```
+
+```{r prob-ipm, echo=TRUE, eval=FALSE}
+```
+
+```{r prob-pengangguran, echo=TRUE, eval=FALSE}
+```
+
+```{r prob-normal, echo=TRUE, eval=FALSE}
+```
+
+## Analisis Korelasi
+
+```{r korelasi-matrix, echo=TRUE, eval=FALSE}
+```
+
+```{r kor-ipm-kemiskinan, echo=TRUE, eval=FALSE}
+```
+
+```{r kor-ipm-internet, echo=TRUE, eval=FALSE}
+```
+
+```{r kor-pdrb-kemiskinan, echo=TRUE, eval=FALSE}
+```
+
